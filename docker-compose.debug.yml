@@ -1,0 +1,27 @@
+version: '3.4'
+
+services:
+  pyminder:
+    image: pyminder
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    command: ["sh", "-c", "pip install debugpy -t /tmp && python /tmp/debugpy --wait-for-client --listen 0.0.0.0:5678 -m uvicorn main:app --host 0.0.0.0 --port 8000"]
+    ports:
+      - 8000:8000
+      - 5678:5678
+    depends_on:
+      - redis
+
+  worker:
+    build: .
+    command: celery --app routers.worker.cel worker
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - pyminder
+      - redis
+
+  redis:
+    image: redis:6-alpine

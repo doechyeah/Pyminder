@@ -1,0 +1,29 @@
+version: '3.4'
+
+services:
+  pyminder:
+    image: pyminder
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    ports:
+      - 8000:8000
+      - 5678:5678
+    depends_on:
+      - redis
+
+  worker:
+    build: .
+    command: celery --app internal.example_celery.celery worker --loglevel=info --logfile=/logs/celery.log
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    depends_on:
+      - pyminder
+      - redis
+
+  redis:
+    image: redis:6-alpine
